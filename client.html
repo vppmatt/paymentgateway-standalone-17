@@ -1,0 +1,382 @@
+<HTML>
+	<head>
+		<script>
+
+			function rootUrl() {
+				var value= document.getElementById("url").value;
+				return value;
+			}
+
+			function buildData(onlyNonBlanks) {
+				var amount = document.getElementById("newAmount").value;
+					var country = document.getElementById("newCountry").value;
+					var currency = document.getElementById("newCurrency").value;
+					var orderId = document.getElementById("newOrderId").value;
+					var taxCode = document.getElementById("newTaxCode").value;
+					var taxRate = document.getElementById("newTaxRate").value;
+					var type = document.getElementById("newType").value;
+					
+					if (!onlyNonBlanks) {
+						var data = {"amount" : +amount,
+								"country" : country,
+								"currency":currency,
+								"orderId":orderId,
+								"taxCode":+taxCode,
+								"taxRate":+taxRate,
+								"type":type};
+
+						return data;
+					}
+					else {
+						var data = {};
+						if (amount != "") {
+							data = {"amount":+amount, ...data};
+						}
+						if (country != "") {
+							data = {"country":country, ...data};
+						}
+						if (currency != "") {
+							data = {"currency":currency, ...data};
+						}
+						if (orderId != "") {
+							data = {"orderId":orderId, ...data};
+						}
+						if (taxCode != "") {
+							data = {"taxCode":+taxCode, ...data};
+						}
+						if (taxRate != "") {
+							data = {"taxRate":+taxRate, ...data};
+						}
+						if (type != "") {
+							data = {"type":type, ...data};
+						}
+
+						return data;
+						
+					}
+			}
+
+			function GenerateAPICommand() {
+				var action = document.getElementById("action").value;
+				var curl =  document.getElementById("curl");
+				var accept = document.getElementById("accept");
+				var curlBase = 'CURL -H "Accept: ' + accept.value + '" ';
+
+				if(action==="POST") {
+
+					var data = buildData(false);
+
+					var sendto = ' -H "Content-Type: application/json" ' + 
+					'-d "' + JSON.stringify(data).replaceAll('"', '\\"') + '" ' + rootUrl();
+					curl.value = curlBase + " -X POST " + sendto;
+					sendRestRequest("POST",rootUrl(),data);
+				}
+
+				if(action==="GET-ID") {
+					var transactionId =  document.getElementById("transactionId").value;
+					var sendto =  rootUrl() + "/" + transactionId
+					var curlCommand = curlBase + sendto;
+					curl.value = curlCommand;
+
+					sendRestRequest("GET",sendto,null);
+				}
+
+				if(action==="GET-ORDER") {
+					var orderId =  document.getElementById("orderId").value;
+					var sendto =  rootUrl() + "?order=" + orderId
+					var curlCommand = curlBase + sendto;
+					curl.value = curlCommand;
+
+					sendRestRequest("GET",sendto,null);
+				}
+
+				if(action==="GETALL") {
+					curl.value = curlBase + rootUrl();
+					sendRestRequest("GET",rootUrl(),null);
+				}
+
+				if(action==="GET-COUNTRY") {
+					var country =  document.getElementById("country").value;
+					var sendto =  rootUrl() + "?country=" + country
+					var curlCommand = curlBase + sendto;
+					curl.value = curlCommand;
+
+					sendRestRequest("GET",sendto,null);
+				}
+
+				if(action==="PUT") {
+					var transactionId =  document.getElementById("transactionId").value;
+
+					var data = buildData(true);
+					
+				
+					var sendto = ' -H "Content-Type: application/json" ' + 
+					'-d "' + JSON.stringify(data).replaceAll('"', '\\"') + '" ' + rootUrl()+"/"+transactionId;
+					curl.value = curlBase + " -X PUT " + sendto;
+					sendRestRequest("PUT",rootUrl()+"/"+transactionId,data);
+
+				}
+				
+			}
+
+			function sendRestRequest(method, url, data) {
+
+				var responseDIV =  document.getElementById("response");
+				var headersDIV =  document.getElementById("headers");
+				var accept = document.getElementById("accept");
+				responseDIV.innerHTML = "sending...";
+
+				var xhttp = new XMLHttpRequest();
+				xhttp.onreadystatechange = function() {
+         				if (this.readyState == 4 && this.status == 200) {
+         					headersDIV.innerHTML = this.getAllResponseHeaders();
+         					var displayText = this.responseText;
+         					if (this.getAllResponseHeaders().includes("json")) {
+
+         						displayText =  "<pre>" + JSON.stringify(JSON.parse(this.responseText), null, 2) + "</pre>";
+         					}
+         					else if (this.getAllResponseHeaders().includes("xml")) {
+         						displayText =  '<textarea rows="20" cols="70" readonly style="border:none; overflow:scroll">' + this.responseText.replace(/&/g, '&amp;')
+         							.replace(/</g, '&lt;')
+         							.replace(/>/g, '&gt;')
+         							.replace(/"/g, '&quot;') 
+         							+ "</textarea>";
+         					}
+             				responseDIV.innerHTML =   displayText ;
+         				}
+         				else {
+         					if (this.status == "200") {
+         						responseDIV.innerHTML = "please wait..."
+         					}
+         					else {
+         					responseDIV.innerHTML =  "<span style='color:#f00;'> ERROR " + this.status + " " + this.statusText + "</span>" ;	
+         					}
+         				}
+    				};
+    				xhttp.open(method, url, true);
+    				xhttp.setRequestHeader("Content-type", "application/json"); //TODO
+    				xhttp.setRequestHeader("Accept" , accept.value);
+    				if (method === "POST" || method === "PUT") {
+    					xhttp.send(JSON.stringify(data));
+    				}
+    				else {
+    					xhttp.send();
+    				}
+					responseDIV.innerHTML = "awaiting response...";
+
+			}
+
+			function showRequiredPayload() {
+				var action = document.getElementById("action").value;
+				var payloadID = document.getElementById("payloadID")
+				var payloadOrderID = document.getElementById("payloadOrderID")
+				var payloadPOST = document.getElementById("payloadPOST")
+				var payloadCountry = document.getElementById("payloadCountry")
+				var payloadGETALL = document.getElementById("payloadGETALL")
+				var payloadPUT = document.getElementById("payloadPUT")
+
+					payloadPOST.style.display = "none";
+					payloadID.style.display = "none";
+					payloadGETALL.style.display = "none";
+					payloadOrderID.style.display = "none";
+					payloadCountry.style.display = "none";
+					payloadPUT.style.display = "none";
+
+				if (action === "GET-ID" || action ==="PUT") {
+					payloadID.style.display = "block";
+				}
+
+				if (action === "GET-ORDER") {
+					payloadOrderID.style.display = "block";
+				}
+
+				if (action === "GET-COUNTRY") {
+					payloadCountry.style.display = "block";
+				}
+
+				if (action === "GETALL") {
+					payloadGETALL.style.display = "block";
+				}
+
+				if (action === "POST" || action ==="PUT") {
+					payloadPOST.style.display = "block";
+				}
+
+				if (action ==="PUT") {
+					payloadPUT.style.display="block";
+				}
+
+			}
+		</script>
+
+		<style>
+			label {
+				width: 200px;
+				display: block;
+    			float: left;
+			}
+			h4 {
+				margin-top: 40px;
+			}
+
+			h6 {
+				font-size:  1em;
+				margin-bottom:  0;
+			}
+
+			#headers {
+				border: 1px solid #000; 
+				width: 600px;
+				min-height: 40px; 
+				max-height: 100px; 
+				overflow-y: scroll;
+			}
+
+			#response {
+				border: 1px solid #000; 
+				width: 600px;
+				min-height: 100px; 
+				max-height: 400px; 
+				overflow-y: scroll;
+			}
+
+			#curl {
+				border: 1px solid #000; 
+				width: 600px;
+			}
+		</style>
+
+
+	</head>
+
+	<body>
+		<h1>Payment Gateway API Testing Client</h1>
+		<h4>Last update: 19 July 2022</h4>
+
+		<h3>Instructions</h3>
+		<p>The Payment Gateway is a sample Rest application to demonstrate calling a REST api. The system stores data about payments made by customers for their orders.</p>
+		</p>
+		
+			This page can be used to generate a rest request, and it will send it to the server. The equivalent CURL command will also be provided.
+		</p>
+		<p>Click <a href="http://localhost:8080/" target="_blank">here</a> to view the API documentation</p>
+
+		<h4>Create REST request</h4>
+		<p>
+			<label for="url">Server root url</label>
+			<input id="url" value="http://localhost:8080/api/payment" style="width: 400px;"/>
+		</p>
+		<p>
+			<label for="action">Action</label>
+			<select id="action" onChange="showRequiredPayload()">
+				<option value="GETALL">Get a list of all payments (GET)</option>
+				<option value="GET-ID">Get a payment with an id (GET with path param)</option>
+				<option value="GET-ORDER">Get all payments for an orderId (GET with querystring)</option>
+				<option value="GET-COUNTRY">Get all payments with a country (GET with querystring)</option>
+				<option value="POST">New Payment (POST)</option>
+				<option value="PUT">Update Payment (PUT)</option>
+			</select>
+		</p>
+
+		<h4>Requested data format</h4>
+		<div id="acceptType">
+			<label for="accept">Accept</label>
+			<select id="accept">
+				<option value="application/json">JSON</option>
+				<option value="application/xml">XML</option>
+			</select>
+		</div>
+
+
+
+		<h4>Payload / Parameters </h4>
+
+		<div id="payloadID" style="display: none;">
+			<p>
+				<label for="transactionId">Transaction ID</label>
+				<input id="transactionId" value="123"/>
+			</p>
+		</div>
+
+		<div id="payloadPUT" style="display:none;">
+			<p>For a put to work, provide the transaction ID, and then only the fields that you are changing the value of</p> 
+		</div>
+
+		<div id="payloadPOST" style="display:none;">
+			<p>
+				<label for="newOrderId">Order Id</label>
+				<input id="newOrderId" value="21213456"/>
+			</p>
+	    
+			<p>
+				<label for="newCountry">Country</label>
+				<input id="newCountry" value="egy"/>
+			</p>
+	    
+	    	<p>
+				<label for="newCurrency">Currency</label>
+				<input id="newCurrency" value="USD"/>
+			</p>
+
+			<p>
+				<label for="newAmount">Amount</label>
+				<input id="newAmount" value="35.00"/>
+			</p>
+
+			<p>
+				<label for="newTaxCode">TaxCode</label>
+				<input id="newTaxCode" value="4"/>
+			</p>
+
+			<p>
+				<label for="newTaxRate">Tax Rate</label>
+				<input id="newTaxRate" value="0.00"/>
+			</p>
+
+			<p>
+				<label for="newType">Payment Type</label>
+				<select id="newType">
+					<option value=""></option>
+					<option value="VISA">Visa</option>
+					<option value="MC">Mastercard</option>
+					<option value="MCDEBIT">Mastercard Debit</option>
+					<option value="DELTA">Delta</option>
+					<option value="unknown">Unknown</option>
+				</select>
+			</p>
+
+    	
+		</div>
+
+		<div id="payloadGETALL" style="display: none;">
+			<p>
+			No additional data is required for this request
+			</p>
+		</div>
+
+		<div id="payloadOrderID" style="display: none;">
+			<p>
+				<label for="orderId">Order ID</label>
+				<input id="orderId" value="21213168"/>
+			</p>
+		</div>
+
+		<div id="payloadCountry" style="display: none;">
+			<p>
+				<label for="country">Country</label>
+				<input id="country" value="egy"/>
+			</p>
+		</div>
+
+		<button style="margin-top:40px;" onClick="GenerateAPICommand();">Generate API Command</button>
+
+		<h4>Curl command</h4>
+		<textarea id="curl" rows=5> </textarea>
+
+		<h4>Response from server</h4>
+		<h6>Headers</h6>
+		<div id="headers"></div>
+		<h6>Response</h6>
+		<div id="response"></div>
+	</body>
+</HTML>
